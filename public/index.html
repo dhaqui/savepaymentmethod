@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Save Payment Method – PayPal</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f7fa;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.10);
+      padding: 32px;
+      width: 100%;
+      max-width: 440px;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 28px;
+    }
+
+    .field-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #444;
+      margin-bottom: 6px;
+    }
+
+    /* PayPal hosted fields のコンテナ */
+    .hosted-field {
+      height: 44px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fafafa;
+      padding: 0 12px;
+      transition: border-color 0.2s;
+    }
+
+    .hosted-field.focused {
+      border-color: #0070ba;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(0,112,186,0.12);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .customer-field {
+      width: 100%;
+      height: 44px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 14px;
+      background: #fafafa;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .customer-field:focus {
+      border-color: #0070ba;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(0,112,186,0.12);
+    }
+
+    .sca-select {
+      width: 100%;
+      height: 44px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 14px;
+      background: #fafafa;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .btn-save {
+      width: 100%;
+      height: 48px;
+      background: #0070ba;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s;
+    }
+
+    .btn-save:hover:not(:disabled) { background: #005ea6; }
+    .btn-save:disabled { background: #aaa; cursor: not-allowed; }
+
+    .divider {
+      text-align: center;
+      font-size: 13px;
+      color: #999;
+      margin: 20px 0;
+      position: relative;
+    }
+
+    .divider::before, .divider::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: calc(50% - 20px);
+      height: 1px;
+      background: #eee;
+    }
+
+    .divider::before { left: 0; }
+    .divider::after { right: 0; }
+
+    #status {
+      margin-top: 20px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+
+    #status.success {
+      background: #e6f4ea;
+      color: #1e7e34;
+      border: 1px solid #b7dfbe;
+      display: block;
+    }
+
+    #status.error {
+      background: #fdecea;
+      color: #b71c1c;
+      border: 1px solid #f5c6cb;
+      display: block;
+    }
+
+    #status.info {
+      background: #e8f4fd;
+      color: #0c5a8e;
+      border: 1px solid #b8daff;
+      display: block;
+    }
+
+    .result-box {
+      margin-top: 16px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 14px;
+      font-family: monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #333;
+      display: none;
+      word-break: break-all;
+    }
+
+    .result-box.visible { display: block; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .badge.prod { background: #fde8e8; color: #c0392b; }
+    .badge.sandbox { background: #e8f4fd; color: #0070ba; }
+
+    #loading-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.7);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    #loading-overlay.visible { display: flex; }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #ddd;
+      border-top-color: #0070ba;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="spinner"></div>
+</div>
+
+<div class="card">
+  <h1>カード情報を保存
+    <span id="env-badge" class="badge"></span>
+  </h1>
+  <p class="subtitle">後払い・定期課金用にカードを安全に保存します</p>
+
+  <div class="field-group">
+    <label for="customer-id">顧客ID（任意・既存顧客の場合）</label>
+    <input type="text" id="customer-id" class="customer-field" placeholder="例: tanzania_agent_1326" />
+  </div>
+
+  <div class="field-group">
+    <label for="sca-method">3DS 検証方法</label>
+    <select id="sca-method" class="sca-select">
+      <option value="SCA_WHEN_REQUIRED">SCA_WHEN_REQUIRED（推奨）</option>
+      <option value="SCA_ALWAYS">SCA_ALWAYS（常に3DS）</option>
+    </select>
+  </div>
+
+  <div class="divider">カード情報</div>
+
+  <div class="field-group">
+    <label>カード番号</label>
+    <div id="card-number" class="hosted-field"></div>
+  </div>
+
+  <div class="row">
+    <div class="field-group">
+      <label>有効期限</label>
+      <div id="expiration-date" class="hosted-field"></div>
+    </div>
+    <div class="field-group">
+      <label>CVV</label>
+      <div id="cvv" class="hosted-field"></div>
+    </div>
+  </div>
+
+  <div class="field-group">
+    <label>カード名義人</label>
+    <div id="card-holder-name" class="hosted-field"></div>
+  </div>
+
+  <button id="submit-btn" class="btn-save" disabled>カードを保存する</button>
+
+  <div id="status"></div>
+  <div id="result-box" class="result-box"></div>
+</div>
+
+<!-- PayPal JS SDK -->
+<script src="https://www.paypal.com/sdk/js?components=card-fields&client-id=__CLIENT_ID__&currency=USD"></script>
+
+<script>
+  const statusEl = document.getElementById("status");
+  const resultEl = document.getElementById("result-box");
+  const submitBtn = document.getElementById("submit-btn");
+  const overlay = document.getElementById("loading-overlay");
+
+  function showStatus(msg, type = "info") {
+    statusEl.textContent = msg;
+    statusEl.className = type;
+  }
+
+  function showResult(obj) {
+    resultEl.textContent = JSON.stringify(obj, null, 2);
+    resultEl.classList.add("visible");
+  }
+
+  function setLoading(on) {
+    overlay.classList.toggle("visible", on);
+    submitBtn.disabled = on;
+  }
+
+  // 環境バッジ
+  const isProd = !window.location.hostname.includes("localhost");
+  const badge = document.getElementById("env-badge");
+  badge.textContent = isProd ? "本番" : "Sandbox";
+  badge.className = `badge ${isProd ? "prod" : "sandbox"}`;
+
+  // CardFields 初期化
+  let cardFields;
+
+  try {
+    cardFields = paypal.CardFields({
+      createVaultSetupToken: async () => {
+        const customerId = document.getElementById("customer-id").value.trim();
+        const verificationMethod = document.getElementById("sca-method").value;
+
+        const body = { verification_method: verificationMethod };
+        if (customerId) body.customer_id = customerId;
+
+        const res = await fetch("/api/vault/setup-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || JSON.stringify(data));
+
+        console.log("Setup token:", data.id);
+        showStatus(`Setup token 取得: ${data.id}`, "info");
+        return data.id;
+      },
+
+      onApprove: async ({ vaultSetupToken, liabilityShift }) => {
+        console.log("onApprove:", { vaultSetupToken, liabilityShift });
+
+        // 3DS liability shift のログ
+        if (liabilityShift) {
+          console.log("3DS liability shift:", liabilityShift);
+        }
+
+        showStatus("Payment token 作成中...", "info");
+
+        const res = await fetch("/api/vault/payment-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ vaultSetupToken }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showStatus(`エラー: ${data.message || JSON.stringify(data)}`, "error");
+          showResult(data);
+          return;
+        }
+
+        showStatus("✅ カードの保存が完了しました", "success");
+        showResult({
+          paymentTokenId: data.paymentTokenId,
+          customerId: data.customerId,
+          card: data.card,
+          liabilityShift: liabilityShift || null,
+        });
+        setLoading(false);
+      },
+
+      onCancel: () => {
+        showStatus("3DS 認証がキャンセルされました", "error");
+        setLoading(false);
+      },
+
+      onError: (error) => {
+        console.error("CardFields error:", error);
+        showStatus(`エラー: ${error.message || String(error)}`, "error");
+        setLoading(false);
+      },
+    });
+
+    if (cardFields.isEligible()) {
+      cardFields.NameField().render("#card-holder-name");
+      cardFields.NumberField().render("#card-number");
+      cardFields.ExpiryField().render("#expiration-date");
+      cardFields.CVVField().render("#cvv");
+
+      submitBtn.disabled = false;
+
+      submitBtn.addEventListener("click", () => {
+        setLoading(true);
+        statusEl.className = "";
+        statusEl.textContent = "";
+        resultEl.classList.remove("visible");
+
+        cardFields.submit().catch((err) => {
+          console.error(err);
+          showStatus(`送信エラー: ${err.message}`, "error");
+          setLoading(false);
+        });
+      });
+    } else {
+      showStatus("このブラウザではカード入力が利用できません", "error");
+    }
+  } catch (err) {
+    showStatus(`SDK 初期化エラー: ${err.message}`, "error");
+    console.error(err);
+  }
+</script>
+
+</body>
+</html>

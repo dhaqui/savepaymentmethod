@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3DS 完了</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f7fa;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.10);
+      padding: 40px;
+      text-align: center;
+      max-width: 360px;
+    }
+    h1 { font-size: 18px; margin-bottom: 12px; color: #1a1a1a; }
+    p { font-size: 14px; color: #666; }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon" id="icon">⏳</div>
+    <h1 id="title">処理中...</h1>
+    <p id="msg">しばらくお待ちください</p>
+  </div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const isCancelled = window.location.pathname.includes("cancel");
+
+    if (isCancelled) {
+      document.getElementById("icon").textContent = "❌";
+      document.getElementById("title").textContent = "3DS がキャンセルされました";
+      document.getElementById("msg").textContent = "カードの保存がキャンセルされました。";
+    } else {
+      document.getElementById("icon").textContent = "✅";
+      document.getElementById("title").textContent = "認証完了";
+      document.getElementById("msg").textContent = "カードの保存処理を完了しています...";
+    }
+  </script>
+</body>
+</html>
