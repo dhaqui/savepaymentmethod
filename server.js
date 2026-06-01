@@ -50,7 +50,7 @@ async function getAccessToken() {
 
 // Setup Token 作成
 // POST /api/vault/setup-token
-app.post("/v3/vault/setup-token", async (req, res) => {
+app.post("/api/vault/setup-token", async (req, res) => {
   try {
     const accessToken = await getAccessToken();
     const { customer_id, verification_method = "SCA_WHEN_REQUIRED" } = req.body;
